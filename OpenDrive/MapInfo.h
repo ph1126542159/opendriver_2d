@@ -28,6 +28,8 @@ public:
     void getRoadLaneSectionPoint(const RoadMapPoint &roadMapAllPoint, QVector<QVector<QVector<QVector<QPointF> > > > &qvecQvecMapPoint) const;
 
     QPointF getCenterPoint()const;
+	
+	QSizeF getGraphicsSize()const;
 private:
     void setLaneOffsetOpposite(std::vector<std::shared_ptr<t_road>> &vecRoad);
     void setSGeometryOpposite(std::vector<std::shared_ptr<t_road>> &vecRoad);

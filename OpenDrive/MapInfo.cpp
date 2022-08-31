@@ -13,6 +13,9 @@ MapInfo::~MapInfo()
 QPointF MapInfo::getCenterPoint()const {
     return QPointF((m_maxPoint.x() + m_minPoint.x())/2, (m_maxPoint.y() + m_minPoint.y()) / 2);
 }
+QSizeF MapInfo::getGraphicsSize()const{
+	return QSizeF(sqrt(std::pow(m_maxPoint.x()-m_minPoint.x(),2)),sqrt(std::pow(m_maxPoint.y()-m_minPoint.y(),2)));
+}
 void MapInfo::transferRoadMapInfo(std::vector<std::shared_ptr<t_road> > &vecAllRoad,RoadMapPoint& roadMapPoint)
 {
     m_maxPoint = QPointF(0,0);
