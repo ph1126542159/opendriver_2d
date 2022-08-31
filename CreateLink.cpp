@@ -162,13 +162,6 @@ void LinkerSection::paint()
 	for (auto& it : m_centerLine) {
 		centerPoints.append(QVector3D(it.x() - CreateLink::g_ScenceCenterPt.x(), it.y() - CreateLink::g_ScenceCenterPt.y(), 0.0f));
 	}
-	//QList<QVector3D> centerPointsTemp= centerPoints;
-	//centerPointsTemp.removeLast();
-	//for (auto it : lanesWithPointsForRight) {
-	//	it["left"].removeLast();
-	//	it["center"].removeLast();
-	//	it["right"].removeLast();
-	//}
 	ILink* linker = gpTessInterface->netInterface()->createLink3DWithLanePoints(centerPoints, lanesWithPointsForRight);
 	setLinkerData(linker, m_RightLaneIds);
 
@@ -177,12 +170,6 @@ void LinkerSection::paint()
 		std::reverse(lanesWithPointsForLeft.begin(), lanesWithPointsForLeft.end());
 		std::reverse(m_leftLaneIds.begin(), m_leftLaneIds.end());
 	}
-	//centerPoints.removeLast();
-	//for (auto it : lanesWithPointsForLeft) {
-	//	it["left"].removeLast();
-	//	it["center"].removeLast();
-	//	it["right"].removeLast();
-	//}
 
 	linker = gpTessInterface->netInterface()->createLink3DWithLanePoints(centerPoints, lanesWithPointsForLeft);
 	setLinkerData(linker, m_leftLaneIds);
@@ -235,7 +222,6 @@ QMap<QString, QList<QVector3D>> LinkerLane::initLanePoints(int roadIndex, int se
 
 	return map;
 }
-
 void CreateLink::paint(PrograssDlgForFloat* ptrProDlg)
 {
 	m_ptrProDld = ptrProDlg;

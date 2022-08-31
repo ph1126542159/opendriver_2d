@@ -234,11 +234,10 @@ void XodrNet::loadXodrNet(const QString& path) {
 					if (sectionLane[n]->m_link && sectionLane[n]->m_link->m_successors.size() > 0) {
 						sectionConnItem.xodrInfo.fromLaneId = ptrLane->m_laneId;
 						sectionConnItem.xodrInfo.toLaneId = sectionLane[n]->m_link->m_successors[0]->id;
-						//sectionConnItem.xodrInfo.contactPointFrom = "end";
+
 						if (j + 1 < roadPoint.size()) {
 							sectionConnItem.toRoadId = ptrRoad->id;
 							sectionConnItem.xodrInfo.to = sectionConnItem.xodrInfo.from + 1;
-							//sectionConnItem.xodrInfo.contactPointTo = "end";
 							CreateLink::getInstance()->appendSectionConnectItems(sectionConnItem);
 							continue;
 						}
@@ -246,7 +245,6 @@ void XodrNet::loadXodrNet(const QString& path) {
 						sectionConnItem.toRoadId = ptrRoad->m_link->m_successor->elementId;
 						sectionConnItem.xodrInfo.to = 0;
 	
-						//sectionConnItem.xodrInfo.contactPointTo = contactPointType[ptrRoad->m_link->m_successor->contactPoint];
 						CreateLink::getInstance()->filterLinkConnectOr(sectionConnItem);
 					}
 				}
