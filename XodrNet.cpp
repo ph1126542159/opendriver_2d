@@ -248,7 +248,7 @@ void XodrNet::loadXodrNet(const QString& path) {
 						CreateLink::getInstance()->filterLinkConnectOr(sectionConnItem);
 					}
 				}
-				
+				ptrSection->arrangePoints();
 				ptrLinkerRoad->m_listSections.append(ptrSection);
 			}
 			CreateLink::getInstance()->appendRoads(ptrLinkerRoad);

@@ -47,6 +47,8 @@ int main(int argc, char *argv[])
         result = a.exec();
         pWindow->deleteLater();
     }
-    result= a.exec();
+    else {
+        result = a.exec();
+    }
     return result;
 }

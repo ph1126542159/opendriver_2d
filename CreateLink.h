@@ -72,7 +72,18 @@ public:
 			((fromRoadId == other.fromRoadId && toRoadId == other.toRoadId) || (fromRoadId == other.toRoadId && toRoadId == other.fromRoadId));
 	}
 };
+struct SectionFilterInfo
+{
+	std::string fromRoadId;
+	std::string toRoadId;
+	int fromSectionIndex;
+	int toSectionIndex;
 
+	bool operator == (const SectionFilterInfo& other)const {
+		return  fromSectionIndex == other.fromSectionIndex && toSectionIndex == other.toSectionIndex &&
+			((fromRoadId == other.fromRoadId && toRoadId == other.toRoadId) || (fromRoadId == other.toRoadId && toRoadId == other.fromRoadId));
+	}
+};
 class LinkerLane {
 public:
 	int m_laneId;
@@ -83,12 +94,19 @@ private:
 class RoadSection {
 public:
 	void appendCenterPoint(const QPolygonF& pts);
+	QList<QVector3D>& getLeftCenterPoints();
+	QList<QVector3D>& getRightCenterPoints();
+	void removePointsByCount(int start, int removeCount,bool isLeft);
 protected:
+	void removePointsByCount(int start, int removeCount, QList<QVector3D>& center, QList<QMap<QString, QList<QVector3D>>>& listPits);
+	void removePtsFromList(int start, int removeCount, QList<QVector3D>& list);
 	QList<QMap<QString, QList<QVector3D>>> lanesWithPointsForLeft;
 	QList<QMap<QString, QList<QVector3D>>> lanesWithPointsForRight;
 	QList<int> m_leftLaneIds;
 	QList<int> m_RightLaneIds;
 	QPolygonF m_centerLine;
+	QList<QVector3D> m_rightCentePts;
+	QList<QVector3D> m_leftCentePts;
 };
 class LinkerSection :public RoadSection {
 public:
@@ -96,6 +114,8 @@ public:
 	LinkerSection(LinkerRoad* ptrRoad);
 	void paint();
 	void appendLanePoints(int laneId, const QMap<QString, QList<QVector3D>>& points, bool isLeft);
+	void arrangePoints();
+	
 private:
 	LinkerSection() = delete;
 	void setLinkerData(ILink* linker, const QList<int>& laneIds);
@@ -108,6 +128,9 @@ public:
 	int getIndexSection();
 	int getFirstSectionIndex();
 	int getLastSectionIndex();
+	void removePointsByCount(int index,int start,int removeCount, bool isLeft);
+	QList<QVector3D>& getLeftCenterPoints(int index);
+	QList<QVector3D>& getRightCenterPoints(int index);
 	QList<std::shared_ptr<LinkerSection>> m_listSections;
 	void paint();
 };
@@ -128,12 +151,19 @@ public:
 
 	static QPointF g_ScenceCenterPt;
 	static bool g_isReverse;
+	static 	double m_minDis;
 private:
 	CreateLink();
 	void createSectionConnector();
+	void swapSectionConnectorInfo(SectionConnectItem& item);
 	bool getSectionConnInfo(SectionConnectItem& item);
 	int getFirstSectionIndex(int);
 	int getLastSectionIndex(int);
+	/// <summary>
+	/// 删除相邻section 首尾最小距离 小于0.1(默认)米的所有点
+	/// </summary>
+	/// <param name="item"></param>
+	void removeSectionConnPoints(const SectionConnectItem& item);
 	static int userDefRoadId;
 	QHash<int, std::shared_ptr<LinkerRoad>> m_mapRoads;
 	QList<ConnectorItem> hasPaintedList;

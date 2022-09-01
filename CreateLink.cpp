@@ -7,9 +7,9 @@
 
 bool CreateLink::g_isReverse = true;
 int CreateLink::userDefRoadId = 0;
+double CreateLink::m_minDis = 0.1;
 QPointF CreateLink::g_ScenceCenterPt = QPointF(0, 0);
-CreateLink::CreateLink()
-{
+CreateLink::CreateLink(){
 
 }
 bool CreateLink::checkConnectorItem(ConnectorItem& item) {
@@ -115,7 +115,7 @@ void CreateLink::appendRoads(std::shared_ptr<LinkerRoad> ptrRoad)
 
 void CreateLink::appendSectionConnectItems(const SectionConnectItem& item) {
 	if (secConnItemList.contains(item)) return;
-		secConnItemList.append(item);
+	secConnItemList.append(item);
 }
 void CreateLink::filterLinkConnectOr(const SectionConnectItem& item) {
 	bool flag = false;
@@ -129,7 +129,7 @@ void CreateLink::filterLinkConnectOr(const SectionConnectItem& item) {
 	if (flag) return;
 	secConnItemList.append(item);
 }
-LinkerSection::LinkerSection(LinkerRoad* ptrRoad) :RoadSection(),m_ptrRoad(ptrRoad)
+LinkerSection::LinkerSection(LinkerRoad* ptrRoad) :RoadSection(), m_ptrRoad(ptrRoad)
 {
 
 }
@@ -155,24 +155,53 @@ void LinkerSection::appendLanePoints(int laneId, const QMap<QString, QList<QVect
 	lanesWithPointsForRight.append(points);
 	m_RightLaneIds.append(laneId);
 }
-
-void LinkerSection::paint()
-{
-	QList<QVector3D> centerPoints;
+void LinkerSection::arrangePoints() {
 	for (auto& it : m_centerLine) {
-		centerPoints.append(QVector3D(it.x() - CreateLink::g_ScenceCenterPt.x(), it.y() - CreateLink::g_ScenceCenterPt.y(), 0.0f));
+		m_rightCentePts.append(QVector3D(it.x() - CreateLink::g_ScenceCenterPt.x(), it.y() - CreateLink::g_ScenceCenterPt.y(), 0.0f));
 	}
-	ILink* linker = gpTessInterface->netInterface()->createLink3DWithLanePoints(centerPoints, lanesWithPointsForRight);
-	setLinkerData(linker, m_RightLaneIds);
-
+	m_leftCentePts = m_rightCentePts;
 	if (CreateLink::g_isReverse) {
-		std::reverse(centerPoints.begin(), centerPoints.end());
+		std::reverse(m_leftCentePts.begin(), m_leftCentePts.end());
 		std::reverse(lanesWithPointsForLeft.begin(), lanesWithPointsForLeft.end());
 		std::reverse(m_leftLaneIds.begin(), m_leftLaneIds.end());
 	}
+}
+void LinkerSection::paint()
+{
+	ILink* linker = gpTessInterface->netInterface()->createLink3DWithLanePoints(m_rightCentePts, lanesWithPointsForRight);
+	setLinkerData(linker, m_RightLaneIds);
 
-	linker = gpTessInterface->netInterface()->createLink3DWithLanePoints(centerPoints, lanesWithPointsForLeft);
+	linker = gpTessInterface->netInterface()->createLink3DWithLanePoints(m_leftCentePts, lanesWithPointsForLeft);
 	setLinkerData(linker, m_leftLaneIds);
+}
+QList<QVector3D>& RoadSection::getLeftCenterPoints() {
+	return m_leftCentePts;
+}
+QList<QVector3D>& RoadSection::getRightCenterPoints() {
+	return m_rightCentePts;
+}
+void RoadSection::removePtsFromList(int start, int removeCount, QList<QVector3D>& list) {
+	while (removeCount >0)
+	{
+		if (0 == start) list.removeFirst();
+		else list.removeLast();
+		removeCount--;
+	}
+}
+void RoadSection::removePointsByCount(int start, int removeCount, QList<QVector3D>& center, QList<QMap<QString, QList<QVector3D>>>& listPits) {
+	removePtsFromList(start, removeCount, center);
+	for (auto& it : listPits) {
+		removePtsFromList(start, removeCount, it["left"]);
+		removePtsFromList(start, removeCount, it["center"]);
+		removePtsFromList(start, removeCount, it["right"]);
+	}
+}
+void RoadSection::removePointsByCount(int start, int removeCount, bool isLeft) {
+	if (isLeft) {
+		removePointsByCount(start, removeCount, m_leftCentePts, lanesWithPointsForLeft);
+		return;
+	}
+	removePointsByCount(start, removeCount, m_rightCentePts, lanesWithPointsForRight);
 }
 void RoadSection::appendCenterPoint(const QPolygonF& pts)
 {
@@ -180,6 +209,9 @@ void RoadSection::appendCenterPoint(const QPolygonF& pts)
 }
 int LinkerRoad::getIndexSection() {
 	return m_listSections.size();
+}
+void LinkerRoad::removePointsByCount(int index, int start, int removeCount, bool isLeft) {
+	m_listSections[index]->removePointsByCount(start, removeCount, isLeft);
 }
 QMap<QString, QList<QVector3D>> LinkerLane::initLanePoints(int roadIndex, int sectionIndex, int laneIndex, RoadMapPaint& roadMapPaint, bool isLeft)
 {
@@ -222,10 +254,60 @@ QMap<QString, QList<QVector3D>> LinkerLane::initLanePoints(int roadIndex, int se
 
 	return map;
 }
+
+void CreateLink::removeSectionConnPoints(const SectionConnectItem& item) {
+	QList<QVector3D> fromCenterPts,toCenterPts;
+	if (item.xodrInfo.fromLaneId > 0) {
+		fromCenterPts = m_mapRoads[std::atoi(item.fromRoadId.c_str())]->getLeftCenterPoints(item.xodrInfo.from);
+	}
+	else {
+		fromCenterPts = m_mapRoads[std::atoi(item.fromRoadId.c_str())]->getRightCenterPoints(item.xodrInfo.from);
+	}
+
+	if (item.xodrInfo.toLaneId > 0) {
+		toCenterPts = m_mapRoads[std::atoi(item.toRoadId.c_str())]->getLeftCenterPoints(item.xodrInfo.to);
+	}
+	else {
+		toCenterPts = m_mapRoads[std::atoi(item.toRoadId.c_str())]->getRightCenterPoints(item.xodrInfo.to);
+	}
+	int m= fromCenterPts.size()-1;
+	int n=0;
+	QVector3D fromPt, toPt;
+	double dis=0;
+	while (true)
+	{
+		if (m <= 0 || n >= toCenterPts.size() - 1) break;
+		fromPt = fromCenterPts[m];
+		toPt = toCenterPts[n];
+		dis = std::sqrt(std::pow(fromPt.x()-toPt.x(), 2) + std::pow(fromPt.y()-toPt.y(), 2));
+		int nRt = IsEqualZero(dis - CreateLink::m_minDis);
+		if (nRt >= 0) break;
+		m--;
+		n++;
+	}
+	m_mapRoads[std::atoi(item.fromRoadId.c_str())]->removePointsByCount(item.xodrInfo.from,m ,n, item.xodrInfo.fromLaneId > 0);
+
+	m_mapRoads[std::atoi(item.toRoadId.c_str())]->removePointsByCount(item.xodrInfo.to,0, n, item.xodrInfo.toLaneId > 0);
+}
 void CreateLink::paint(PrograssDlgForFloat* ptrProDlg)
 {
+	QList<SectionFilterInfo> listSecCon;
 	m_ptrProDld = ptrProDlg;
 	m_ptrProDld->setInfo("阶段2,创建路段:", m_mapRoads.size());
+	for (auto &item : secConnItemList) {
+		swapSectionConnectorInfo(item);
+
+		SectionFilterInfo con;
+		con.fromRoadId = item.fromRoadId;
+		con.toRoadId = item.toRoadId;
+		con.fromSectionIndex = item.xodrInfo.from;
+		con.toSectionIndex = item.xodrInfo.to;
+
+
+		if (listSecCon.contains(con)) continue;
+		removeSectionConnPoints(item);
+		listSecCon.append(con);
+	}
 	for (auto it : m_mapRoads) {
 		it->paint();
 		m_ptrProDld->addPrescent(1.0);
@@ -243,6 +325,13 @@ int LinkerRoad::getFirstSectionIndex() {
 }
 int LinkerRoad::getLastSectionIndex() {
 	return m_listSections.last()->sectionIndex;
+}
+
+QList<QVector3D>& LinkerRoad::getLeftCenterPoints(int index) {
+	return m_listSections[index]->getLeftCenterPoints();
+}
+QList<QVector3D>& LinkerRoad::getRightCenterPoints(int index) {
+	return m_listSections[index]->getRightCenterPoints();
 }
 void CreateLink::appendLinkerData(int roadId, int sectionIndex, int laneId, const QPair<int, int>& info) {
 	m_linkerData[roadId][sectionIndex][laneId] = info;
@@ -274,12 +363,9 @@ int CreateLink::getFirstSectionIndex(int id) {
 int CreateLink::getLastSectionIndex(int id) {
 	return m_mapRoads[id]->getLastSectionIndex();
 }
-bool CreateLink::getSectionConnInfo(SectionConnectItem& item) {
+void CreateLink::swapSectionConnectorInfo(SectionConnectItem& item) {
 	int rdFrom = std::atoi(item.fromRoadId.c_str());
 	int rdTo = std::atoi(item.toRoadId.c_str());
-
-	if (!m_linkerData.contains(rdFrom)) return false;
-	if (!m_linkerData.contains(rdTo)) return false;
 
 	int fromLaneId = item.xodrInfo.fromLaneId;
 	int toLane = item.xodrInfo.toLaneId;
@@ -319,9 +405,23 @@ bool CreateLink::getSectionConnInfo(SectionConnectItem& item) {
 			std::swap(fromLaneId, toLane);
 		}
 	}
-	
+	item.fromRoadId = std::to_string(rdFrom);
+	item.toRoadId = std::to_string(rdTo);
+	item.xodrInfo.fromLaneId = fromLaneId;
+	item.xodrInfo.toLaneId = toLane;
+}
+bool CreateLink::getSectionConnInfo(SectionConnectItem& item) {
+	int rdFrom = std::atoi(item.fromRoadId.c_str());
+	int rdTo = std::atoi(item.toRoadId.c_str());
+
+	if (!m_linkerData.contains(rdFrom)) return false;
+	if (!m_linkerData.contains(rdTo)) return false;
+
+	int fromLaneId = item.xodrInfo.fromLaneId;
+	int toLane = item.xodrInfo.toLaneId;
+
 	int sectionindexFrom = item.xodrInfo.from;
-	
+
 	if (!m_linkerData[rdFrom].contains(sectionindexFrom)) return false;
 	if (!m_linkerData[rdFrom][sectionindexFrom].contains(fromLaneId)) return false;
 	item.xodrInfo.from = m_linkerData[rdFrom][sectionindexFrom][fromLaneId].first;
@@ -332,7 +432,7 @@ bool CreateLink::getSectionConnInfo(SectionConnectItem& item) {
 	if (!m_linkerData[rdTo][sectionIdexTo].contains(toLane)) return false;
 	item.xodrInfo.to = m_linkerData[rdTo][sectionIdexTo][toLane].first;
 	item.xodrInfo.toLaneId = m_linkerData[rdTo][sectionIdexTo][toLane].second;
-	
+
 	return true;
 }
 void CreateLink::createSectionConnector() {
@@ -343,10 +443,8 @@ void CreateLink::createSectionConnector() {
 		QList<int> fromLanes, toLanes;
 		fromLanes << it.xodrInfo.fromLaneId;
 		toLanes << it.xodrInfo.toLaneId;
-
 		if (checkHasPatined(it.xodrInfo)) continue;
 		gpTessInterface->netInterface()->createConnector(it.xodrInfo.from, it.xodrInfo.to, fromLanes, toLanes);
-
 		m_ptrProDld->addPrescent(1.0);
 	}
 }
