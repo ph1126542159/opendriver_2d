@@ -162,7 +162,7 @@ void XodrNet::loadXodrNet(const QString& path) {
 
 		if ("-1" != ptrRoad->junction)
 		{
-			//if ("509" != ptrRoad->junction) continue;
+			//if ("685" != ptrRoad->junction) continue;
 			///交叉口路段
 			std::shared_ptr<JounctionRoad> ptrJounctionRd(new JounctionRoad());
 			ptrJounctionRd->m_strRoadId = ptrRoad->id;
@@ -202,7 +202,9 @@ void XodrNet::loadXodrNet(const QString& path) {
 		}
 		else {
 			///直线型路段
-			//if ("25" != ptrRoad->id && "30" != ptrRoad->id) continue;
+	/*		if ("33" != ptrRoad->id && "30" != ptrRoad->id && 
+				"31" != ptrRoad->id && "39" != ptrRoad->id && 
+				"48" != ptrRoad->id && "32" != ptrRoad->id) continue;*/
 			std::shared_ptr<LinkerRoad> ptrLinkerRoad(new LinkerRoad());
 			ptrLinkerRoad->m_strRoadId = ptrRoad->id;
 	

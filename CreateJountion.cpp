@@ -261,16 +261,13 @@ void JounctionRoad::paint2() {
         if (CreateLink::g_isReverse) {
             if (!CreateLink::getInstance()->checkConnectorItem(item)) continue;
         }
-        else {
-
-        }
         if (!CreateLink::getInstance()->getTessngConnectorData(item.from, item.fromLaneId,true)) continue;
         if (!CreateLink::getInstance()->getTessngConnectorData(item.to, item.toLaneId,false)) continue;
 
         if (CreateLink::getInstance()->checkHasPatined(item)) continue;
         QList<int> lFromLaneNumber, lToLaneNumber;
         lFromLaneNumber << item.fromLaneId; lToLaneNumber << item.toLaneId;
-        //gpTessInterface->netInterface()->createConnector3DWithPoints(item.from, item.to, lFromLaneNumber, lToLaneNumber, list);
-        gpTessInterface->netInterface()->createConnector(item.from, item.to, lFromLaneNumber, lToLaneNumber);
+        gpTessInterface->netInterface()->createConnector3DWithPoints(item.from, item.to, lFromLaneNumber, lToLaneNumber, list);
+        //gpTessInterface->netInterface()->createConnector(item.from, item.to, lFromLaneNumber, lToLaneNumber);
     }
 }

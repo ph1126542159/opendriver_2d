@@ -7,7 +7,7 @@
 
 bool CreateLink::g_isReverse = true;
 int CreateLink::userDefRoadId = 0;
-double CreateLink::m_minDis = 0.1;
+double CreateLink::m_minDis = 0.0001;
 QPointF CreateLink::g_ScenceCenterPt = QPointF(0, 0);
 CreateLink::CreateLink(){
 
@@ -181,7 +181,18 @@ QList<QVector3D>& RoadSection::getRightCenterPoints() {
 	return m_rightCentePts;
 }
 void RoadSection::removePtsFromList(int start, int removeCount, QList<QVector3D>& list) {
-	while (removeCount >0)
+	if (list.size() - removeCount < 2) {
+		int addNum = (list.size() + 1 - removeCount) * 2;
+		float uint = 1.0 / (addNum);
+		QVector3D uvec = uint * (list.last() - list.first());
+
+		QVector3D begin = list.first();
+		list.clear();
+		for (int i = 0; i < addNum; i++) {
+			list.append(begin + i * uvec);
+		}
+	}
+	while (removeCount > 0)
 	{
 		if (0 == start) list.removeFirst();
 		else list.removeLast();
@@ -190,18 +201,22 @@ void RoadSection::removePtsFromList(int start, int removeCount, QList<QVector3D>
 }
 void RoadSection::removePointsByCount(int start, int removeCount, QList<QVector3D>& center, QList<QMap<QString, QList<QVector3D>>>& listPits) {
 	removePtsFromList(start, removeCount, center);
+
 	for (auto& it : listPits) {
 		removePtsFromList(start, removeCount, it["left"]);
 		removePtsFromList(start, removeCount, it["center"]);
 		removePtsFromList(start, removeCount, it["right"]);
 	}
 }
-void RoadSection::removePointsByCount(int start, int removeCount, bool isLeft) {
-	if (isLeft) {
+void RoadSection::removePointsByCount(int start, int removeCount) {
+	if (0 == start) {
 		removePointsByCount(start, removeCount, m_leftCentePts, lanesWithPointsForLeft);
-		return;
+		removePointsByCount(m_rightCentePts.size()- removeCount, removeCount, m_rightCentePts, lanesWithPointsForRight);
 	}
-	removePointsByCount(start, removeCount, m_rightCentePts, lanesWithPointsForRight);
+	else {
+		removePointsByCount(0, removeCount, m_leftCentePts, lanesWithPointsForLeft);
+		removePointsByCount(start, removeCount, m_rightCentePts, lanesWithPointsForRight);
+	}
 }
 void RoadSection::appendCenterPoint(const QPolygonF& pts)
 {
@@ -210,8 +225,8 @@ void RoadSection::appendCenterPoint(const QPolygonF& pts)
 int LinkerRoad::getIndexSection() {
 	return m_listSections.size();
 }
-void LinkerRoad::removePointsByCount(int index, int start, int removeCount, bool isLeft) {
-	m_listSections[index]->removePointsByCount(start, removeCount, isLeft);
+void LinkerRoad::removePointsByCount(int index, int start, int removeCount) {
+	m_listSections[index]->removePointsByCount(start, removeCount);
 }
 QMap<QString, QList<QVector3D>> LinkerLane::initLanePoints(int roadIndex, int sectionIndex, int laneIndex, RoadMapPaint& roadMapPaint, bool isLeft)
 {
@@ -254,7 +269,6 @@ QMap<QString, QList<QVector3D>> LinkerLane::initLanePoints(int roadIndex, int se
 
 	return map;
 }
-
 void CreateLink::removeSectionConnPoints(const SectionConnectItem& item) {
 	QList<QVector3D> fromCenterPts,toCenterPts;
 	if (item.xodrInfo.fromLaneId > 0) {
@@ -285,9 +299,8 @@ void CreateLink::removeSectionConnPoints(const SectionConnectItem& item) {
 		m--;
 		n++;
 	}
-	m_mapRoads[std::atoi(item.fromRoadId.c_str())]->removePointsByCount(item.xodrInfo.from,m ,n, item.xodrInfo.fromLaneId > 0);
-
-	m_mapRoads[std::atoi(item.toRoadId.c_str())]->removePointsByCount(item.xodrInfo.to,0, n, item.xodrInfo.toLaneId > 0);
+	m_mapRoads[std::atoi(item.fromRoadId.c_str())]->removePointsByCount(item.xodrInfo.from, m, n);
+	m_mapRoads[std::atoi(item.toRoadId.c_str())]->removePointsByCount(item.xodrInfo.to, 0, n);
 }
 void CreateLink::paint(PrograssDlgForFloat* ptrProDlg)
 {

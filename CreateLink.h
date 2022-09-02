@@ -96,7 +96,7 @@ public:
 	void appendCenterPoint(const QPolygonF& pts);
 	QList<QVector3D>& getLeftCenterPoints();
 	QList<QVector3D>& getRightCenterPoints();
-	void removePointsByCount(int start, int removeCount,bool isLeft);
+	void removePointsByCount(int start, int removeCount);
 protected:
 	void removePointsByCount(int start, int removeCount, QList<QVector3D>& center, QList<QMap<QString, QList<QVector3D>>>& listPits);
 	void removePtsFromList(int start, int removeCount, QList<QVector3D>& list);
@@ -128,7 +128,7 @@ public:
 	int getIndexSection();
 	int getFirstSectionIndex();
 	int getLastSectionIndex();
-	void removePointsByCount(int index,int start,int removeCount, bool isLeft);
+	void removePointsByCount(int index,int start,int removeCount);
 	QList<QVector3D>& getLeftCenterPoints(int index);
 	QList<QVector3D>& getRightCenterPoints(int index);
 	QList<std::shared_ptr<LinkerSection>> m_listSections;
